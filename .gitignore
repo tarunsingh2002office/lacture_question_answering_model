@@ -1,0 +1,76 @@
+# Python bytecode files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Django stuff:
+*.log
+*.sqlite3
+db.sqlite3
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env/
+
+# Media and static files
+media/
+staticfiles/
+data/
+
+# IDE and editor files
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.idea/
+.vscode/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+.coverage
+.coverage.*
+nosetests.xml
+*.cover
+*.py,cover
+
+# MyPy
+.mypy_cache/
+
+# pytest
+.cache/
+
+# Environments
+.env
+*.env
+
+# Django migrations
+*/migrations/
+!*/migrations/__init__.py
+
+# pipenv
+Pipfile.lock
+
+# pyenv
+.python-version
+
+# poetry
+.poetry/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Docker
+docker-compose.override.yml
+.env
+
+# juputer notebooks
+*.png
+*.jpg
+old_result
+data_Streamlit
