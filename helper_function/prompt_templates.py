@@ -10,6 +10,7 @@ Generate up to 30 multiple-choice questions (10 Easy, 10 Medium, 10 Hard) with *
 1. **Question Basis**  
    - All questions must be based solely on the information provided in the `detail_page_summary`. Do not use any information from the `cumulative_concise_summary` to formulate the questions or their answers, except for context.
    - If there is not enough material to generate all 30 questions, produce as many as possible, but preserve the ratio of Easy:Medium:Hard as closely as possible.
+  - In the option text **DO NOT** use banned phrases: "In the transcript," "In the page," "In the document," "In the script," "According to the text," "According to the summary,".
 
 2. **Answer Options Basis**  
    - All questions must only and only have 4 answer options.
