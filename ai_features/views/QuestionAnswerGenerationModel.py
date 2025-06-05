@@ -4,7 +4,6 @@ import uuid
 import shutil
 import zipfile
 import asyncio
-import whisper
 from core.config import ai_api_secrets
 # from langchain_openai import ChatOpenAI
 from fastapi import Request, UploadFile, File
@@ -126,6 +125,7 @@ def create_zip_sync(all_paths, zip_buffer):
                 zip_file.write(all_paths["cumulative_concise_summary_file"], arcname="cumulative_concise_summary.txt")
                 zip_file.write(all_paths["cumulative_detailed_summary_file"], arcname="cumulative_detailed_summary.txt")
                 zip_file.write(all_paths["cumulative_question_json_file"], arcname="cumulative_question.json")
+                zip_file.write(all_paths["input_pdf_file"], arcname="input.pdf")
         return zip_buffer
     except Exception as err:
         raise Exception(f"something went wrong {err}")
@@ -155,10 +155,10 @@ async def QuestionAnswerGenerationModel(request: Request, uploaded_file: UploadF
         file_bytes = await uploaded_file.read()
         with open(all_paths["input_video_file"], "wb") as out_f:
             out_f.write(file_bytes)
-        video_to_audio(all_paths["input_video_file"], output_path=all_paths["input_audio_file"])
-        text = audio_to_text(all_paths["input_audio_file"])
-        save_text_to_pdf(text, output_path=all_paths["input_pdf_file"])
-        total_pages = split_pdf(all_paths["input_pdf_file"], all_paths["split_pdf_dir"])
+        await video_to_audio(all_paths["input_video_file"], output_path=all_paths["input_audio_file"])
+        text = await audio_to_text(all_paths["input_audio_file"])
+        await save_text_to_pdf(text, output_path=all_paths["input_pdf_file"])
+        total_pages = await split_pdf(all_paths["input_pdf_file"], all_paths["split_pdf_dir"])
         structured_summary_generation_model, structured_question_generation_model = await init_models()
         final_chain = await chain(structured_summary_generation_model, structured_question_generation_model)
         cumulative_concise_summary = ""
