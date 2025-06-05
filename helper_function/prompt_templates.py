@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 question_prompt = PromptTemplate(
     input_variables=["detail_page_summary", "cumulative_concise_summary"],
     template="""
-Generate up to 30 multiple-choice questions (10 Easy, 10 Medium, 10 Hard) with **four answer options each** (A, B, C, D), correct answer option (eg. A), and a brief answer explanation based on the **detailed page summary**. Use the cumulative concise summary from previous pages only for context, not for generating the questions themselves. Follow these STRICT RULES:
+Generate up to 30 multiple-choice questions (10 Easy, 10 Medium, 10 Hard) with **four answer options each**, correct answer option (eg. **text of that option**), and a brief answer explanation based on the **detailed page summary**. Use the cumulative concise summary from previous pages only for context, not for generating the questions themselves. Follow these STRICT RULES:
 
 ### VALIDATION RULES
 
@@ -11,20 +11,26 @@ Generate up to 30 multiple-choice questions (10 Easy, 10 Medium, 10 Hard) with *
    - All questions must be based solely on the information provided in the `detail_page_summary`. Do not use any information from the `cumulative_concise_summary` to formulate the questions or their answers, except for context.
    - If there is not enough material to generate all 30 questions, produce as many as possible, but preserve the ratio of Easy:Medium:Hard as closely as possible.
 
-2. **Diversity**
+2. **Answer Options Basis**  
+   - All questions must only and only have 4 answer options.
+   - Each question should have a **1 correct answer option** and **3 incorrect answer options**.
+   - In the option text **DO NOT** use banned phrases: "In the transcript," "In the page," "In the document," "In the script," "According to the text".
+   - In the option text **DO NOT** add any option number prefix, such as "A.", "B.", "C.", "D." "A)" "B)" "C)" "D)" "1)" "2)" "3)" "4)"
+
+3. **Diversity**
    - Cover a range of topics from the **detailed page summary**, including main topics, key points, explanations, examples, interactive elements, etc.
 
-3. **Difficulty Levels**  
+4. **Difficulty Levels**  
    - **Easy** (10): Direct recall or very simple recognition questions (e.g., definitions, straightforward facts).  
    - **Medium** (10): Require applying a concept to a slightly modified scenario or combining two ideas from the summary.  
    - **Hard** (10): Involve Analysis, synthesis, evaluation, complex inferences, multi‐step reasoning, or distinguishing subtle nuances (e.g., “Which of the following best explains why… based on the lecturer’s reasoning?”).
 
-4. **Answer Explanation**  
+5. **Answer Explanation**  
    - For each question, provide a clear explanation of why the correct answer is right and why the others are wrong.
    - Each answer explanation, begin with either “In the lecture…” or “As defined…” or “According to the instructor…”  or "From the example given...", or "In the discussion, it is stated that..."
    - DO NOT use banned phrases: “in the transcript,” “in the page,” “in the document,” “in the script,” or “according to the text.”
 
-5. **Stylistic Constraints**  
+6. **Stylistic Constraints**  
    - Use clear, academic language.  
    - Avoid phrasing that implies inference beyond what is written (e.g., “It can be assumed that…”).  
    - Do NOT reference “previous page” or “next page”—only refer to “the summary” or “the lecture.”

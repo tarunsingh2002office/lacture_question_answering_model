@@ -20,7 +20,7 @@ question_json_schema = {
                     },
                     "correct_answer": {
                         "type": "string",
-                        "description": "Return the correct answer to the question"
+                        "description": "Return the correct answer option complete text"
                     },
                     "answer_explanation": {
                         "type": "string",
