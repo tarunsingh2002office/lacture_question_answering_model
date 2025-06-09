@@ -17,7 +17,7 @@ from helper_function.prompt_templates import question_prompt, summary_prompt
 from helper_function.schema_definitions import question_json_schema, summary_json_schema
 from helper_function.video_to_pdf_function import video_to_audio, save_text_to_pdf, split_pdf, audio_to_text
 
-async def init_models():
+def init_models():
     try:
         question_generation_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-preview-05-20", temperature=0.7)
         summary_generation_model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.5)
@@ -54,9 +54,9 @@ async def paths():
             "cumulative_concise_summary_file": cumulative_concise_summary_file,
             "cumulative_question_json_file": cumulative_question_json_file
         }
-        data_dir.mkdir(exist_ok=True, parents=True)
-        output_dir.mkdir(exist_ok=True, parents=True)
-        split_pdf_dir.mkdir(exist_ok=True, parents=True)
+        await asyncio.to_thread(data_dir.mkdir, exist_ok=True, parents=True)
+        await asyncio.to_thread(output_dir.mkdir, exist_ok=True, parents=True)
+        await asyncio.to_thread(split_pdf_dir.mkdir, exist_ok=True, parents=True)
         return all_paths
     except Exception as err:
         raise Exception(f"something went wrong {err}")
@@ -70,7 +70,7 @@ async def pdf_loader(pdf_name):
     except Exception as err:
         raise Exception(f"something went wrong {err}") 
 
-async def chain(structured_summary_generation_model, structured_question_generation_model):
+def chain(structured_summary_generation_model, structured_question_generation_model):
     try: 
         summary_chain = summary_prompt | structured_summary_generation_model
         question_chain = question_prompt | structured_question_generation_model
@@ -159,8 +159,8 @@ async def QuestionAnswerGenerationModel(request: Request, uploaded_file: UploadF
         text = await audio_to_text(all_paths["input_audio_file"])
         await save_text_to_pdf(text, output_path=all_paths["input_pdf_file"])
         total_pages = await split_pdf(all_paths["input_pdf_file"], all_paths["split_pdf_dir"])
-        structured_summary_generation_model, structured_question_generation_model = await init_models()
-        final_chain = await chain(structured_summary_generation_model, structured_question_generation_model)
+        structured_summary_generation_model, structured_question_generation_model = init_models()
+        final_chain = chain(structured_summary_generation_model, structured_question_generation_model)
         cumulative_concise_summary = ""
         cumulative_detailed_summary = ""
         final_json = {}
