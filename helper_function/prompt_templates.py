@@ -1,18 +1,20 @@
 from langchain_core.prompts import PromptTemplate
 
 question_prompt = PromptTemplate(
-    input_variables=["detail_page_summary", "cumulative_concise_summary"],
+    input_variables=["detail_page_summary", "cumulative_concise_summary", "number_of_questions","number_of_questions_in_each_category"],
     template="""
-Generate up to 30 multiple-choice questions (10 Easy, 10 Medium, 10 Hard) with **four answer options each**, correct answer option (eg. **text of that option**), and a brief answer explanation based on the **detailed page summary**. Use the cumulative concise summary from previous pages only for context, not for generating the questions themselves. Follow these STRICT RULES:
+Generate up to \n{number_of_questions} multiple-choice questions (\n{number_of_questions_in_each_category} Easy, \n{number_of_questions_in_each_category} Medium, \n{number_of_questions_in_each_category} Hard) with **four answer options each**, correct answer option (eg. **text of that option**), and a brief answer explanation based on the **detailed page summary**. Use the cumulative concise summary from previous pages only for context, not for generating the questions themselves. Follow these STRICT RULES:
 
 ### VALIDATION RULES
 
-1. **Question Basis**  
+1. **Question Basis** 
+   - All questions must be in English only.
    - All questions must be based solely on the information provided in the `detail_page_summary`. Do not use any information from the `cumulative_concise_summary` to formulate the questions or their answers, except for context.
-   - If there is not enough material to generate all 30 questions, produce as many as possible, but preserve the ratio of Easy:Medium:Hard as closely as possible.
+   - If there is not enough material to generate all \n{number_of_questions} questions, produce as many as possible, but preserve the ratio of Easy:Medium:Hard as closely as possible.
   - In the option text **DO NOT** use banned phrases: "In the transcript," "In the page," "In the document," "In the script," "According to the text," "According to the summary,".
 
 2. **Answer Options Basis**  
+   - All Answer Options must be in English only.
    - All questions must only and only have 4 answer options.
    - Each question should have a **1 correct answer option** and **3 incorrect answer options**.
    - In the option text **DO NOT** use banned phrases: "In the transcript," "In the page," "In the document," "In the script," "According to the text".
@@ -22,9 +24,9 @@ Generate up to 30 multiple-choice questions (10 Easy, 10 Medium, 10 Hard) with *
    - Cover a range of topics from the **detailed page summary**, including main topics, key points, explanations, examples, interactive elements, etc.
 
 4. **Difficulty Levels**  
-   - **Easy** (10): Direct recall or very simple recognition questions (e.g., definitions, straightforward facts).  
-   - **Medium** (10): Require applying a concept to a slightly modified scenario or combining two ideas from the summary.  
-   - **Hard** (10): Involve Analysis, synthesis, evaluation, complex inferences, multi‐step reasoning, or distinguishing subtle nuances (e.g., “Which of the following best explains why… based on the lecturer’s reasoning?”).
+   - **Easy** (\n{number_of_questions_in_each_category}): Direct recall or very simple recognition questions (e.g., definitions, straightforward facts).  
+   - **Medium** (\n{number_of_questions_in_each_category}): Require applying a concept to a slightly modified scenario or combining two ideas from the summary.  
+   - **Hard** (\n{number_of_questions_in_each_category}): Involve Analysis, synthesis, evaluation, complex inferences, multi‐step reasoning, or distinguishing subtle nuances (e.g., “Which of the following best explains why… based on the lecturer’s reasoning?”).
 
 5. **Answer Explanation**  
    - For each question, provide a clear explanation of why the correct answer is right and why the others are wrong.
@@ -45,7 +47,7 @@ Generate up to 30 multiple-choice questions (10 Easy, 10 Medium, 10 Hard) with *
 """)
 
 summary_prompt = PromptTemplate(
-    input_variables=["page_text", "cumulative_concise_summary"],
+    input_variables=["page_text", "cumulative_concise_summary" , "number_of_questions","number_of_questions_in_each_category"],
     template="""
 Analyze this educational lecture transcript page with STRICT ADHERENCE TO VISIBLE CONTENT ONLY to generate a DETAILED PAGE SUMMARY and a CONCISE PAGE SUMMARY.
 
@@ -77,6 +79,7 @@ Analyze this educational lecture transcript page with STRICT ADHERENCE TO VISIBL
   2. Do NOT infer the lecturer’s intent or add personal commentary.
   3. Do NOT paraphrase examples beyond what is directly stated.
   4. Do NOT reference anything beyond this page’s content.
+  5. Do Not Create Summary in language other than English.
 - Use plain Markdown bullet points within each section.
 
 # CONCISE PAGE SUMMARY
@@ -91,6 +94,8 @@ Analyze this educational lecture transcript page with STRICT ADHERENCE TO VISIBL
   4. Emphasize the flow of ideas (cause→effect or definition→application).
   5. ONLY use CURRENT PAGE FACTS + the explicit previous summary provided.
   6. Maintain consistency with the overall lecture theme.
+  7. Do Not Create Summary in language other than English.
+
 
 - Output Requirements:
   - Novel‐style academic prose (no lists, no bullet points).

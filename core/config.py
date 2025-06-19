@@ -8,7 +8,7 @@ class ApiSecrets(BaseSettings):
     LANGCHAIN_API_KEY: str
     LANGCHAIN_PROJECT: str
     LANGCHAIN_TRACING_V2: bool
-    # OPENAI_API_KEY: str
+    OPENAI_API_KEY: str
     class Config:
         env_file = ".env"
         extra = "ignore"  
