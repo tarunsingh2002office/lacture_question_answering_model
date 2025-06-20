@@ -47,7 +47,7 @@ async def save_text_to_pdf(font_path: Path, output_path: Path, text: str, page_w
             
             # Layout parameters
             x, y = page_margin, 750
-            line_height = 14
+            line_height = 20
             words = text.split()
             current_line = []
             
