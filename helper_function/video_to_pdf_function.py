@@ -2,14 +2,17 @@ import os
 import io
 import json
 import asyncio
-from fpdf import FPDF
 from pathlib import Path
 from openai import OpenAI
 from pydub import AudioSegment
 from typing import Union, List
 from moviepy import VideoFileClip
-from PyPDF2 import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
 from langsmith.run_helpers import trace
+from PyPDF2 import PdfReader, PdfWriter
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfbase.ttfonts import TTFont
 
 async def video_to_audio(video_path: Path, output_path: Path) -> Path:
     """Convert video to audio regardless of length"""
@@ -34,16 +37,43 @@ async def video_to_audio(video_path: Path, output_path: Path) -> Path:
             os.remove(output_path)
         raise RuntimeError(f"Conversion failed: {str(e)}")
     
-async def save_text_to_pdf(text: str, output_path: Path):
+async def save_text_to_pdf(font_path: Path, output_path: Path, text: str, page_width: int = 580, page_margin: int = 20) -> None:
     try:
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0, 10, text)
-        pdf.output(output_path)
-    except Exception as e:
-        raise RuntimeError(f"Failed to save text to PDF: {str(e)}")
+        def _generate_pdf():
+            # Register font and setup canvas
+            pdfmetrics.registerFont(TTFont("Poppins", str(font_path)))
+            c = canvas.Canvas(str(output_path), pagesize=letter)
+            c.setFont("Poppins", 12)
+            
+            # Layout parameters
+            x, y = page_margin, 750
+            line_height = 14
+            words = text.split()
+            current_line = []
+            
+            # Text layout algorithm
+            for word in words:
+                test_line = ' '.join(current_line + [word])
+                if c.stringWidth(test_line, "Poppins", 12) > (page_width - 2 * page_margin):
+                    c.drawString(x, y, ' '.join(current_line))
+                    y -= line_height
+                    current_line = [word]
+                    if y < 50:  # New page check
+                        c.showPage()
+                        c.setFont("Poppins", 12)
+                        y = 750
+                else:
+                    current_line.append(word)
+            
+            # Render remaining text
+            if current_line:
+                c.drawString(x, y, ' '.join(current_line))
+            c.save()
+
+        # Execute blocking PDF generation in thread
+        await asyncio.to_thread(_generate_pdf)
+    except Exception as err:
+        raise Exception(f"something went wrong {err}")
 
 async def split_pdf(input_pdf_path: Path, output_folder: Path) -> int:
     try:
@@ -52,7 +82,7 @@ async def split_pdf(input_pdf_path: Path, output_folder: Path) -> int:
         total_pages = len(reader.pages)
         
         # Iterate through all pages
-        for i, page in enumerate(total_pages, start=1):
+        for i, page in enumerate(reader.pages, start=1):
             writer = PdfWriter()
             writer.add_page(page)
 
@@ -160,8 +190,12 @@ async def audio_to_text(path: Path, hinglish: bool = False) -> str:
                                 file=audio_file,
                                 response_format="text",
                                 prompt=(
-                                    "This is a hinglish audio file. Please make sure to "
-                                    "add Hindi words as-is like hai(है), accha(अच्छा)."
+                                    "Instruction:\n"
+                                    "1. Translate the entire audio into fluent English.\n"
+                                    "2. Do NOT leave any Hindi phrases untranslated—except for individual Hindi words.\n"
+                                    "3. For each Hindi word, output it exactly as spoken in Devanagari script (e.g., 'accha (अच्छा)', 'hai (है)').\n"
+                                    "4. Keep the Hindi words inline with your English translation; do not transliterate them into Latin.\n"
+                                    "5. Output only the final English text with inline Hindi words—no extra commentary."
                                 ),
                             )
                         )
