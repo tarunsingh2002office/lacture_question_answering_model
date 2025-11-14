@@ -18,6 +18,7 @@ from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase.ttfonts import TTFont
+from helper_function.textfile import text1, text2
 
 async def video_to_audio(video_path: Path, output_path: Path) -> Path:
     """Convert video to audio regardless of length"""
