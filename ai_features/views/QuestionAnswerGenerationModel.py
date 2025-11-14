@@ -34,7 +34,8 @@ from helper_function.video_to_pdf_function import (
     write_file, 
     audio_to_text,
     video_to_audio, 
-    save_text_to_pdf
+    save_text_to_pdf,
+    sanitize_question_dict
 )
 
 def init_models():
@@ -204,17 +205,21 @@ async def generate_questions_for_lecture(
             "number_of_questions": number_of_questions,
             "number_of_questions_in_each_category": number_of_questions // 3
         })
-        print(f"All model questions: {all_model_questions}")
+        # Sanitize all model outputs
+        all_model_questions_sanitized = sanitize_question_dict(all_model_questions)
         
         # Step 2: Use selection model to pick best questions
         best_questions = await question_selection_chain.ainvoke({
-            "all_model_questions": all_model_questions,
+            "all_model_questions": all_model_questions_sanitized,
             "lecture_summary": lecture_summary,
             "number_of_questions": number_of_questions,
             "number_of_questions_in_each_category": number_of_questions // 3
         })
         
-        return best_questions
+        # Sanitize final output (double-check)
+        best_questions_sanitized = sanitize_question_dict(best_questions)
+        
+        return best_questions_sanitized
         
     except Exception as err:
         raise Exception(f"Question generation failed: {err}")
@@ -229,20 +234,19 @@ async def process_single_lecture(
 ) -> tuple:
     """Process a single lecture to generate page-wise summaries"""
     try:
-        print(f"\n{'='*60}")
-        print(f"Processing Lecture {lecture_idx + 1}")
-        print(f"{'='*60}")
+        
+        
         
         # Split PDF into pages
         total_pages = await split_pdf(lecture_pdf_path, split_pdf_dir)
-        print(f"Lecture {lecture_idx + 1}: Split into {total_pages} pages")
+        
         
         # Process each page sequentially
         cumulative_concise = ""
         cumulative_detailed = ""
         
         for page_num in range(total_pages):
-            print(f"  Processing page {page_num + 1}/{total_pages}...")
+            
             
             concise, detailed = await process_single_page(
                 page_num=page_num,
@@ -267,7 +271,7 @@ async def process_single_lecture(
                 )
             )
         
-        print(f"✓ Lecture {lecture_idx + 1} summary generation complete")
+        
         return cumulative_concise, cumulative_detailed
     except Exception as err:
         raise Exception(f"Lecture processing failed for lecture {lecture_idx}: {err}")
@@ -347,9 +351,7 @@ async def QuestionAnswerGenerationModel(
         cumulative_summary_chain = create_cumulative_summary_chain(cumulative_summary_model)
         
         # Process all videos to PDFs first
-        print("\n" + "="*60)
-        print("PHASE 1: Converting Videos to PDFs")
-        print("="*60)
+        
         
         lecture_pdfs = []
         for i, upload in enumerate(uploaded_file):
@@ -361,7 +363,7 @@ async def QuestionAnswerGenerationModel(
                     status_code=400
                 )
             
-            print(f"\nProcessing video {i + 1}/{len(uploaded_file)}: {upload.filename}")
+            
             
             file_bytes = await upload.read()
             video_target = all_paths["input_video_dir"] / f"input_{i}.mp4"
@@ -383,12 +385,10 @@ async def QuestionAnswerGenerationModel(
             )
             
             lecture_pdfs.append(pdf_path)
-            print(f"✓ Video {i + 1} converted to PDF")
+            
         
         # Process each lecture
-        print("\n" + "="*60)
-        print("PHASE 2: Generating Lecture Summaries")
-        print("="*60)
+        
         
         all_previous_lecture_summary = ""
         
@@ -407,7 +407,6 @@ async def QuestionAnswerGenerationModel(
                 lecture_summaries_dir=all_paths["lecture_summaries_dir"]
             )
             # Generate lecture-specific questions
-            print(f"\n  Generating questions for Lecture {lecture_idx + 1}...")
             lecture_questions = await generate_questions_for_lecture(
                 lecture_summary=lecture_detailed,
                 question_generation_chain=question_generation_chain,
@@ -419,13 +418,13 @@ async def QuestionAnswerGenerationModel(
                 all_paths["lecture_questions_dir"] / f"lecture_{lecture_idx + 1}_questions.json",
                 lecture_questions
             )
-            print(f"✓ Lecture {lecture_idx + 1} questions generated")
+            
             
             # Update cumulative summary
             if lecture_idx == 0:
                 all_previous_lecture_summary = lecture_concise
             else:
-                print(f"\n  Updating cumulative summary (Lectures 1-{lecture_idx + 1})...")
+                
                 cumulative_result = await cumulative_summary_chain.ainvoke({
                     "previous_lectures_summary": all_previous_lecture_summary,
                     "new_lecture_summary": lecture_concise,
@@ -441,7 +440,6 @@ async def QuestionAnswerGenerationModel(
             
             # Generate cumulative questions (from lecture 2 onwards)
             if lecture_idx > 0:
-                print(f"\n  Generating cumulative questions (Lectures 1-{lecture_idx + 1})...")
                 cumulative_questions = await generate_questions_for_lecture(
                     lecture_summary=all_previous_lecture_summary,
                     question_generation_chain=question_generation_chain,
@@ -453,12 +451,9 @@ async def QuestionAnswerGenerationModel(
                     all_paths["cumulative_questions_dir"] / f"cumulative_lectures_1_to_{lecture_idx + 1}_questions.json",
                     cumulative_questions
                 )
-                print(f"✓ Cumulative questions generated (Lectures 1-{lecture_idx + 1})")
+                
         
         # Create ZIP and return
-        print("\n" + "="*60)
-        print("PHASE 3: Creating Output ZIP")
-        print("="*60)
         
         zip_buffer = io.BytesIO()
         zip_buffer = await asyncio.to_thread(create_zip_sync, all_paths, zip_buffer)
@@ -466,7 +461,7 @@ async def QuestionAnswerGenerationModel(
         
         await cleanup(all_paths)
         
-        print("✓ Processing complete!")
+        
         
         return StreamingResponse(
             zip_buffer,
@@ -476,7 +471,7 @@ async def QuestionAnswerGenerationModel(
         )
         
     except Exception as err:
-        print(f"\n❌ Error: {err}")
+        
         await cleanup(all_paths)
         return JSONResponse(
             content={"message": "Processing failed", "error": str(err)},

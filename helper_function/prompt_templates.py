@@ -105,6 +105,25 @@ Generate exactly {number_of_questions} multiple-choice questions ({number_of_que
 - DO NOT use option number prefixes like "A.", "B.", "C.", "D.", "A)", "B)", "C)", "D)", "1)", "2)", "3)", "4)"
 - DO NOT use banned phrases in options: "In the transcript", "In the page", "In the document", "In the script", "According to the text"
 
+## 2A. CRITICAL TEXT FORMATTING RULES (MUST FOLLOW)
+**For Questions, Options, Answers, and Explanations:**
+- Use ONLY plain ASCII characters and standard English punctuation
+- Use straight quotes ONLY: " for quotes (NOT curly quotes like " " or ' ')
+- Use straight apostrophes ONLY: ' for apostrophes (NOT curly apostrophes like ')
+- Use simple minus sign: - (NOT em dash — or en dash –)
+- FORBIDDEN characters: • × ÷ ± ≈ ≠ ≤ ≥ ° ™ © ® … " " ' ' — – ×
+- For mathematical expressions:
+  * Use simple text notation: "x squared" or "x^2" (NOT x²)
+  * Use "multiply" or "*" (NOT × symbol)
+  * Use "divided by" or "/" (NOT ÷ symbol)
+  * Use "approximately" or "~" (NOT ≈ symbol)
+  * Use "not equal to" or "!=" (NOT ≠ symbol)
+  * Use "<=" or ">=" (NOT ≤ or ≥ symbols)
+- Avoid complex mathematical equations that cannot be written in plain text
+- If a concept requires complex math notation, describe it in words instead
+- Test: Every character must be easily typeable on a standard English keyboard
+- NEVER use Unicode escape sequences or special characters that appear as \u codes
+
 ## 3. Diversity
 - Cover a wide range of topics from the lecture summary
 - Include questions about main topics, key points, explanations, examples, etc.

@@ -18,7 +18,6 @@ from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfbase.ttfonts import TTFont
-from helper_function.textfile import text1, text2
 
 async def video_to_audio(video_path: Path, output_path: Path) -> Path:
     """Convert video to audio regardless of length"""
@@ -293,8 +292,6 @@ async def _transcribe_in_chunks(
         # Export chunk to temporary file
         temp_file = text_file_path.parent / f"temp_chunk_{chunk_index}.mp3"
         try:
-            print(f"Processing chunk {chunk_index}: {chunk_duration:.1f}s...")
-            
             # Export chunk (in thread to not block)
             await asyncio.to_thread(
                 chunk.export,
@@ -303,12 +300,12 @@ async def _transcribe_in_chunks(
                 bitrate="128k"  # Lower bitrate to stay under 25MB
             )
             
-            print(f"  → Chunk {chunk_index} exported, sending to API...")
+            
             
             # Transcribe chunk
             transcript = await _transcribe_file(client, temp_file, hinglish)
             
-            print(f"  → Chunk {chunk_index} transcribed, writing to file...")
+            
             
             # IMMEDIATELY write to file SYNCHRONOUSLY (no threading, no delays)
             chunk_text = f"--- CHUNK {chunk_index} ({chunk_duration:.1f}s) ---\n{transcript.strip()}\n\n"
@@ -317,7 +314,7 @@ async def _transcribe_in_chunks(
             # Also keep in memory for final return
             all_transcripts.append(transcript.strip())
             
-            print(f"✓ Chunk {chunk_index} completed and saved to file!")
+            
             
         except Exception as e:
             # Log error and fail immediately
@@ -349,3 +346,130 @@ def _write_transcript_sync(file_path: Path, content: str, append: bool = False) 
         f.write(content)
         f.flush()  # Flush Python buffer
         os.fsync(f.fileno())  # Force OS to write to disk immediately
+
+
+"""
+Text sanitization utility to ensure all generated content uses plain ASCII characters.
+Add this to your helper functions and call it on all question/answer text before saving.
+"""
+
+import re
+import json
+from typing import Dict, Any, Union
+
+# Mapping of Unicode characters to ASCII equivalents
+UNICODE_TO_ASCII_MAP = {
+    # Quotes and apostrophes
+    '\u201c': '"',  # Left double quotation mark
+    '\u201d': '"',  # Right double quotation mark
+    '\u2018': "'",  # Left single quotation mark
+    '\u2019': "'",  # Right single quotation mark
+    '\u201a': "'",  # Single low-9 quotation mark
+    '\u201b': "'",  # Single high-reversed-9 quotation mark
+    '\u201e': '"',  # Double low-9 quotation mark
+    '\u201f': '"',  # Double high-reversed-9 quotation mark
+    '\u2039': "'",  # Single left-pointing angle quotation mark
+    '\u203a': "'",  # Single right-pointing angle quotation mark
+    '\u00ab': '"',  # Left-pointing double angle quotation mark
+    '\u00bb': '"',  # Right-pointing double angle quotation mark
+    
+    # Dashes and hyphens
+    '\u2013': '-',  # En dash
+    '\u2014': '-',  # Em dash
+    '\u2015': '-',  # Horizontal bar
+    '\u2212': '-',  # Minus sign
+    
+    # Mathematical symbols
+    '\u00d7': '*',  # Multiplication sign → asterisk
+    '\u00f7': '/',  # Division sign → slash
+    '\u00b1': '+/-',  # Plus-minus sign
+    '\u2248': '~',  # Almost equal to → tilde
+    '\u2260': '!=',  # Not equal to
+    '\u2264': '<=',  # Less than or equal to
+    '\u2265': '>=',  # Greater than or equal to
+    '\u221a': 'sqrt',  # Square root
+    '\u221e': 'infinity',  # Infinity
+    '\u03c0': 'pi',  # Greek pi
+    '\u2211': 'sum',  # N-ary summation
+    '\u220f': 'product',  # N-ary product
+    '\u222b': 'integral',  # Integral
+    
+    # Superscripts (common ones)
+    '\u00b2': '^2',  # Superscript two
+    '\u00b3': '^3',  # Superscript three
+    '\u00b9': '^1',  # Superscript one
+    '\u2070': '^0',  # Superscript zero
+    '\u2074': '^4',  # Superscript four
+    '\u2075': '^5',  # Superscript five
+    '\u2076': '^6',  # Superscript six
+    '\u2077': '^7',  # Superscript seven
+    '\u2078': '^8',  # Superscript eight
+    '\u2079': '^9',  # Superscript nine
+    
+    # Subscripts (common ones)
+    '\u2080': '_0',  # Subscript zero
+    '\u2081': '_1',  # Subscript one
+    '\u2082': '_2',  # Subscript two
+    '\u2083': '_3',  # Subscript three
+    '\u2084': '_4',  # Subscript four
+    
+    # Other symbols
+    '\u00b0': ' degrees',  # Degree sign
+    '\u2022': '-',  # Bullet point → hyphen
+    '\u2026': '...',  # Horizontal ellipsis
+    '\u00a9': '(c)',  # Copyright sign
+    '\u00ae': '(R)',  # Registered sign
+    '\u2122': '(TM)',  # Trademark sign
+    '\u00a0': ' ',  # Non-breaking space → regular space
+}
+
+def sanitize_text(text: str) -> str:
+    """
+    Convert Unicode special characters to plain ASCII equivalents.
+    
+    Args:
+        text: Input text that may contain Unicode special characters
+        
+    Returns:
+        Sanitized text with only ASCII characters
+    """
+    if not isinstance(text, str):
+        return text
+    
+    # Replace known Unicode characters
+    for unicode_char, ascii_equiv in UNICODE_TO_ASCII_MAP.items():
+        text = text.replace(unicode_char, ascii_equiv)
+    
+    # Remove any remaining non-ASCII characters (replace with space)
+    # This catches any Unicode we haven't explicitly mapped
+    text = re.sub(r'[^\x00-\x7F]+', ' ', text)
+    
+    # Clean up multiple spaces
+    text = re.sub(r'\s+', ' ', text)
+    
+    # Clean up spaces around punctuation
+    text = re.sub(r'\s+([.,;:!?])', r'\1', text)
+    
+    return text.strip()
+
+def sanitize_question_dict(question_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Recursively sanitize all text fields in a question dictionary.
+    
+    Args:
+        question_data: Dictionary containing question data (from LLM output)
+        
+    Returns:
+        Sanitized dictionary with all text fields cleaned
+    """
+    if isinstance(question_data, dict):
+        return {
+            key: sanitize_question_dict(value)
+            for key, value in question_data.items()
+        }
+    elif isinstance(question_data, list):
+        return [sanitize_question_dict(item) for item in question_data]
+    elif isinstance(question_data, str):
+        return sanitize_text(question_data)
+    else:
+        return question_data
